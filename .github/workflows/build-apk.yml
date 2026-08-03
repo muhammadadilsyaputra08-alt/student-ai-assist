@@ -1,0 +1,93 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.44.0'
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Decode release keystore (optional)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          cat > android/key.properties << EOF
+          storeFile=release.keystore
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Verify keystore (optional)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "File size: $(wc -c < android/app/release.keystore) bytes"
+          # Kalau langkah ini gagal, artinya KEYSTORE_PASSWORD/KEY_ALIAS di
+          # GitHub Secrets TIDAK cocok dengan keystore yang di-base64 -
+          # bukan masalah kode, cek ulang secrets-nya.
+          keytool -list -v -keystore android/app/release.keystore \
+            -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS"
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze (non-blocking)
+        run: flutter analyze || true
+
+      - name: Build APK (split per ABI)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-ai-assist-apk
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+          retention-days: 14
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-ai-assist-aab
+          path: build/app/outputs/bundle/release/*.aab
+          retention-days: 14
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/bundle/release/*.aab

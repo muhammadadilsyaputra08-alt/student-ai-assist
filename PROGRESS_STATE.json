@@ -1,0 +1,48 @@
+{
+  "project_name": "student_ai_assist",
+  "stack": "flutter",
+  "architecture_summary": "Flutter mobile app: Markdown editor, PDF viewer, OCR scanner, SQLite local DB, RAGdb-style local vector search, MediaPipe LLM Inference API (.task bundle, via flutter_gemma) on-device, export ke MD/PDF.",
+  "current_phase": "Fase 4: CI/CD via GitHub Actions siap - tinggal push ke GitHub",
+  "verified_files": [
+    "pubspec.yaml",
+    "lib/main.dart",
+    "lib/core/theme.dart",
+    "lib/data/db/app_database.dart",
+    "lib/data/rag/rag_service.dart",
+    "lib/data/ocr/ocr_service.dart",
+    "lib/features/editor/markdown_editor_screen.dart",
+    "lib/features/pdf/pdf_viewer_screen.dart",
+    "lib/features/scanner/scanner_screen.dart",
+    "lib/features/home/home_screen.dart",
+    "android/app/build.gradle",
+    "android/settings.gradle",
+    "android/build.gradle",
+    "android/gradle.properties",
+    "android/gradle/wrapper/gradle-wrapper.properties",
+    "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/kotlin/.../MainActivity.kt",
+    "android/app/src/main/res/values/styles.xml",
+    "android/app/src/main/res/drawable/launch_background.xml",
+    "android/app/src/main/res/mipmap-*/ic_launcher.png (placeholder)",
+    ".github/workflows/build-apk.yml",
+    ".gitignore",
+    "lib/data/ai/task_llm_service.dart"
+  ],
+  "pending_tasks": [
+    "push repo ini ke GitHub -> Actions otomatis build APK+AAB (artifact di tab Actions)",
+    "opsional: isi secrets KEYSTORE_BASE64/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD untuk signed release build",
+    "ganti ic_launcher.png placeholder dengan logo asli",
+    "download model .task (Gemma 2B/2 2B it, format MediaPipe) dari Kaggle Models / Hugging Face resmi Google, taruh di app storage"
+  ],
+  "known_issues": [
+    "Flutter SDK dan Android SDK/NDK tidak terpasang di environment eksekusi ini, dan domain download (storage.googleapis.com, dl.google.com, huggingface.co) tidak ada di allowlist jaringan -> APK biner tidak bisa dikompilasi di sini. Output = source project siap-build.",
+    "FIXED: AGP 8.5.2 di bawah minimum Flutter (8.6.0) -> dinaikkan ke 8.7.2 + Gradle wrapper 8.9 (build gagal exit code 1 di CI run pertama, log: logs_83469751797.zip)",
+    "FIXED: konflik ndk.abiFilters vs splits.abi -> hapus ndk.abiFilters (splits sudah handle arm64-v8a+armeabi-v7a). Kotlin plugin dinaikkan 2.0.20 -> 2.2.20 (log: logs_83471211892.zip)",
+    "FIXED: pubspec.yaml pin flutter_gemma ^0.9.0 terlalu lama (API ModelType/PreferredBackend tidak ke-resolve) -> bump ke ^0.15.0. AGP dinaikkan lagi 8.7.2->8.9.2 (androidx.browser/core butuh AGP 8.9.1+), Gradle wrapper 8.9->8.11.1. task_llm_service.dart ditulis ulang pakai createChat/generateChatResponse (bukan createSession yg tidak terdokumentasi). Ditambahkan proguard-rules.pro untuk MediaPipe agar tidak di-strip R8 (log: logs_83484163886.zip)",
+    "FIXED: task_llm_service.dart - generateChatResponse() return type ModelResponse (sealed class), bukan String -> pakai 'if (response is TextResponse) return response.token'. AGP dinaikkan lagi 8.9.2->8.11.1, Gradle wrapper 8.11.1->8.14.2 (proaktif, sebelum warning 'will soon be dropped' jadi error di run Flutter stable berikutnya). Resolved flutter_gemma version: 0.15.3 (log: logs_83486580973.zip)",
+    "INFO (non-blocking, tidak bisa difix dari kita): plugin camera_android_camerax, flutter_gemma, large_file_handler, pdfx masih apply Kotlin Gradle Plugin (KGP) cara lama - Flutter warning ini akan jadi ERROR di versi Flutter mendatang. Ini tanggung jawab plugin authors migrasi ke Built-in Kotlin, bukan sesuatu yang bisa kita ubah di project ini. Pantau changelog masing-masing plugin.",
+    "FIXED: pubspec.yaml deklarasi assets/config/ (folder kosong, tidak ke-push karena Git tidak track folder kosong) -> dihapus. R8 strip class ML Kit text recognizer varian bahasa (chinese/japanese/korean/devanagari) yang direferensikan reflektif oleh google_mlkit_text_recognition -> ditambah proguard keep rule com.google.mlkit.vision.text.** (log: logs_83499500828.zip)",
+    "BUKAN bug kode - signing gagal 'Failed to read key from store: null' -> storePassword/keyAlias di GitHub Secrets tidak cocok dengan keystore. Ditambahkan step 'Verify keystore' di CI (keytool -list) supaya errornya jelas ke depannya. Fixed juga bug kondisi if workflow yang salah referensi env.KEYSTORE_BASE64 (harusnya secrets.KEYSTORE_BASE64) - sebelumnya kondisi ini tidak reliable (log: logs_83501958956.zip)"
+  ],
+  "session_summary": "AI engine dipindah dari llama.cpp/GGUF ke MediaPipe LLM Inference API (.task) via flutter_gemma - lebih ringan disetup di Android, native lib sudah resmi dari Google."
+}
