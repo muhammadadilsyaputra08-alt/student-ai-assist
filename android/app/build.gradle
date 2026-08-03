@@ -1,0 +1,75 @@
+// NOTE: model .task (MediaPipe LLM Inference bundle) SENGAJA TIDAK di-embed
+// di assets - didownload on-demand saat runtime ke
+// getApplicationDocumentsDirectory()/models/, agar APK di Play Store tetap
+// <100MB (lihat blueprint §5 "Optimasi Ukuran APK").
+
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace "com.studenttools.student_ai_assist"
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId "com.studenttools.student_ai_assist"
+        minSdk 26
+        targetSdk flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+
+    // Split ABI diserahkan ke flag CLI 'flutter build apk --split-per-abi'
+    // (Flutter tool inject konfigurasi split-nya sendiri). Definisi manual
+    // splits{} di sini bikin konflik: Flutter tool expect 3 ABI default
+    // (arm64-v8a, armeabi-v7a, x86_64) tapi splits manual cuma include 2,
+    // hasilnya build "berhasil" tapi Flutter tool gagal nemuin file x86_64.
+
+    aaptOptions {
+        noCompress "task", "tflite"
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+                storeFile file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // pakai keystore rilis jika key.properties ada (lihat CI: secrets.KEYSTORE_*),
+            // jatuh ke debug key kalau belum di-setup agar build tetap jalan.
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+flutter {
+    source "../.."
+}
