@@ -1,0 +1,48 @@
+name: student_ai_assist
+description: Mobile tools mahasiswa dengan AI on-device.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+  flutter: '>=3.44.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^2.6.1
+
+  # Editor
+  markdown_widget: ^2.3.2+8
+  flutter_markdown: ^0.7.4+3
+
+  # PDF
+  pdfx: ^2.6.0
+  file_picker: ^8.1.4
+
+  # OCR / Scanner
+  google_mlkit_text_recognition: ^0.14.0
+  camera: ^0.11.0+2
+
+  # Data
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  path_provider: ^2.1.4
+  excel: ^4.0.6
+
+  # AI inference on-device — MediaPipe LLM Inference API (.task bundle),
+  # bukan llama.cpp/GGUF lagi: setup lebih ringan, native lib sudah
+  # dibungkus resmi oleh Google via plugin ini.
+  flutter_gemma: ^0.15.0
+
+  # Network (model download on-demand, cloud fallback)
+  dio: ^5.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
